@@ -25,7 +25,7 @@ Historical CSV → Spark Batch → Parquet baseline     PostgreSQL
 
 Stack: Python, Apache Kafka, Apache Spark, Parquet, PostgreSQL, FastAPI, HTML/CSS/JavaScript, Prometheus và Docker Compose.
 
-Chi tiết: [Kiến trúc](docs/architecture.md), [Dữ liệu và pipelines](docs/data-pipelines.md), [Vận hành và kiểm thử](docs/operations.md).
+Chi tiết: [Mô tả bài toán](docs/project-charter.md), [Yêu cầu nghiệp vụ](docs/business-requirements.md), [Kiến trúc](docs/architecture.md), [Dữ liệu và pipelines](docs/data-pipelines.md), [Vận hành và kiểm thử](docs/operations.md).
 
 ## Yêu cầu
 
