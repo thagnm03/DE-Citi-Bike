@@ -1,0 +1,335 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://local.ie212/contracts/station-alert-v1.json",
+  "title": "Citi Bike station alert lifecycle event v1",
+  "description": "An explainable lifecycle transition for one station risk episode.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "alert_event_id",
+    "alert_id",
+    "event_type",
+    "lifecycle_status",
+    "alert_type",
+    "recommended_action",
+    "severity",
+    "station",
+    "time",
+    "evidence",
+    "priority",
+    "lineage"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "alert_event_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "alert_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Stable identity for the station, alert type and episode start."
+    },
+    "event_type": {
+      "enum": ["ALERT_OPENED", "ALERT_UPDATED", "ALERT_ACKNOWLEDGED", "ALERT_RESOLVED"]
+    },
+    "lifecycle_status": {
+      "enum": ["OPEN", "ACKNOWLEDGED", "RESOLVED"]
+    },
+    "alert_type": {
+      "enum": ["EMPTY", "LOW_BIKES", "LOW_DOCKS", "FULL", "STALE", "OFFLINE", "DATA_QUALITY"]
+    },
+    "recommended_action": {
+      "enum": ["DELIVER_BIKES", "REMOVE_BIKES", "INSPECT_STATION", "NONE"]
+    },
+    "severity": {
+      "enum": ["INFO", "WARNING", "CRITICAL"]
+    },
+    "station": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["station_id", "short_name", "name"],
+      "properties": {
+        "station_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "short_name": {
+          "type": ["string", "null"],
+          "maxLength": 64
+        },
+        "name": {
+          "type": ["string", "null"],
+          "maxLength": 256
+        }
+      }
+    },
+    "time": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_started_at_utc",
+        "detected_at_utc",
+        "status_changed_at_utc",
+        "last_observed_at_utc",
+        "resolved_at_utc"
+      ],
+      "properties": {
+        "episode_started_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "detected_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status_changed_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_observed_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "resolved_at_utc": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "risk_duration_seconds",
+        "bikes_available",
+        "docks_available",
+        "is_renting",
+        "is_returning",
+        "source_age_seconds",
+        "reason_codes"
+      ],
+      "properties": {
+        "risk_duration_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bikes_available": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "docks_available": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "is_renting": {
+          "type": "boolean"
+        },
+        "is_returning": {
+          "type": "boolean"
+        },
+        "source_age_seconds": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "reason_codes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "EMPTY_PERSISTED",
+              "FULL_PERSISTED",
+              "LOW_BIKES_PERSISTED",
+              "LOW_DOCKS_PERSISTED",
+              "HIGH_HISTORICAL_PICKUP_DEMAND",
+              "HIGH_HISTORICAL_DROPOFF_DEMAND",
+              "RAPID_OUTFLOW",
+              "RAPID_INFLOW",
+              "SOURCE_STALE",
+              "STATION_OFFLINE",
+              "DATA_QUALITY_RISK",
+              "RISK_CLEARED"
+            ]
+          }
+        }
+      }
+    },
+    "priority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "rule_version", "components"],
+      "properties": {
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "rule_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "components": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["severity", "persistence", "historical_demand", "recent_trend", "service_impact"],
+          "properties": {
+            "severity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "persistence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "historical_demand": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "recent_trend": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "service_impact": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "triggering_event_id",
+        "input_topic",
+        "input_partition",
+        "input_offset",
+        "generated_at_utc"
+      ],
+      "properties": {
+        "triggering_event_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "input_topic": {
+          "const": "citibike.station-status.v1"
+        },
+        "input_partition": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "input_offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "generated_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ALERT_OPENED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "lifecycle_status": {
+            "const": "OPEN"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ALERT_ACKNOWLEDGED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "lifecycle_status": {
+            "const": "ACKNOWLEDGED"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ALERT_RESOLVED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "lifecycle_status": {
+            "const": "RESOLVED"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "lifecycle_status": {
+            "const": "RESOLVED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "event_type": {
+            "const": "ALERT_RESOLVED"
+          },
+          "recommended_action": {
+            "const": "NONE"
+          },
+          "severity": {
+            "const": "INFO"
+          },
+          "time": {
+            "properties": {
+              "resolved_at_utc": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "time": {
+            "properties": {
+              "resolved_at_utc": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

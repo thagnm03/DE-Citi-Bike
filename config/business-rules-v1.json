@@ -1,0 +1,20 @@
+{
+  "rule_version": "business-rules-1.0",
+  "persistence_seconds": 300,
+  "stale_after_seconds": 180,
+  "low_bikes_threshold": 2,
+  "low_docks_threshold": 2,
+  "dedup_ttl_seconds": 86400,
+  "watermark_delay": "10 minutes",
+  "priority_update_delta": 5.0,
+  "priority_update_interval_seconds": 300,
+  "high_demand_p95_reference": 5.0,
+  "rapid_trend_threshold": 60.0,
+  "weights": {
+    "severity": 0.4,
+    "persistence": 0.2,
+    "historical_demand": 0.2,
+    "recent_trend": 0.1,
+    "service_impact": 0.1
+  }
+}

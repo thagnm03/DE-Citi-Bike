@@ -1,0 +1,9 @@
+{
+  "availability_percent": 99.0,
+  "p95_latency_ms": 500.0,
+  "minimum_throughput_requests_per_second": 15.0,
+  "maximum_source_age_seconds": 180.0,
+  "production_window_days": 30,
+  "gate_requests": 300,
+  "gate_concurrency": 12
+}

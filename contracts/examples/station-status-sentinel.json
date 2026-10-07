@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "event_id": "dbc947b3c9a7c044ea54de29ccc8e35af54e2eef21b7161e0ec62df43f4b26aa",
+  "event_type": "STATION_STATUS_OBSERVED",
+  "source_system": "citibike_nyc",
+  "station": {
+    "station_id": "ba33c334-e17d-4478-ae3c-9c2f4dbfbb51",
+    "short_name": "5923.02",
+    "name": "51 Ave & 61 St",
+    "latitude": 40.73568,
+    "longitude": -73.90387,
+    "capacity": 0,
+    "metadata_match_status": "MATCHED_BY_STATION_ID"
+  },
+  "availability": {
+    "bikes_available": 0,
+    "bikes_disabled": 0,
+    "docks_available": 0,
+    "docks_disabled": 0,
+    "ebikes_available": 0
+  },
+  "service": {
+    "is_installed": false,
+    "is_renting": false,
+    "is_returning": false
+  },
+  "time": {
+    "snapshot_updated_at_utc": "2026-09-21T01:30:20Z",
+    "station_reported_at_raw": 86400,
+    "station_reported_at_utc": null,
+    "observed_at_utc": "2026-09-21T01:31:00Z",
+    "normalized_at_utc": "2026-09-21T01:31:00Z",
+    "source_age_seconds": null
+  },
+  "source": {
+    "feed_name": "station_status",
+    "feed_version": "1.1",
+    "feed_ttl_seconds": 60,
+    "snapshot_sha256": "752a1ff8f9ea3435759fb974a581a564e5571f266cbce8890a5ba424bbaad329",
+    "raw_archive_path": "raw/gbfs/station_status/date=2026-09-21/1789954220-752a1ff8.json"
+  },
+  "quality": {
+    "timestamp_status": "SENTINEL",
+    "capacity_consistency": "EXACT",
+    "issue_codes": [
+      "SOURCE_TIMESTAMP_SENTINEL"
+    ]
+  }
+}

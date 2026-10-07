@@ -1,0 +1,10 @@
+FROM apache/spark:4.2.0-python3
+
+USER root
+COPY requirements-step4-docker.txt /tmp/requirements-step4-docker.txt
+RUN python3 -m pip install --no-cache-dir -r /tmp/requirements-step4-docker.txt
+
+ENV SPARK_HOME=/opt/spark
+ENV PYTHONPATH=/workspace:/opt/spark/python:/opt/spark/python/lib/pyspark.zip:/opt/spark/python/lib/py4j-0.10.9.9-src.zip
+WORKDIR /workspace
+ENTRYPOINT []

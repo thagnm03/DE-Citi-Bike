@@ -1,0 +1,276 @@
+name: ${COMPOSE_PROJECT_NAME:-citibike-platform}
+
+x-json-logging: &json-logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+x-spark-common: &spark-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+    args:
+      SPARK_IMAGE: ${SPARK_IMAGE:-apache/spark:4.2.0-python3}
+  image: citibike-platform-app:local
+  restart: unless-stopped
+  networks: [platform]
+  logging: *json-logging
+  environment:
+    LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    PYSPARK_PYTHON: /usr/bin/python3
+    PYSPARK_DRIVER_PYTHON: /usr/bin/python3
+
+services:
+  kafka:
+    image: ${KAFKA_IMAGE:-apache/kafka:4.3.1}
+    hostname: kafka
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${KAFKA_HOST_PORT:-9092}:9092"
+    environment:
+      CLUSTER_ID: 4L6g3nShT-eMCtK--X86sw
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:29092,CONTROLLER://:29093,PLAINTEXT_HOST://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:${KAFKA_HOST_PORT:-9092}
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: ${KAFKA_TOPIC_PARTITIONS:-3}
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_HEAP_OPTS: -Xms512m -Xmx512m
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 --list >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+    networks: [platform]
+    logging: *json-logging
+
+  kafka-init:
+    image: ${KAFKA_IMAGE:-apache/kafka:4.3.1}
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: "no"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC_PARTITIONS: ${KAFKA_TOPIC_PARTITIONS:-3}
+      KAFKA_REPLICATION_FACTOR: ${KAFKA_REPLICATION_FACTOR:-1}
+      KAFKA_OBSERVATION_RETENTION_MS: ${KAFKA_OBSERVATION_RETENTION_MS:-259200000}
+      KAFKA_ALERT_RETENTION_MS: ${KAFKA_ALERT_RETENTION_MS:-604800000}
+      KAFKA_WINDOW_RETENTION_MS: ${KAFKA_WINDOW_RETENTION_MS:-604800000}
+    volumes:
+      - ./scripts/init_kafka_topics.sh:/workspace/scripts/init_kafka_topics.sh:ro
+    entrypoint: ["/bin/bash", "/workspace/scripts/init_kafka_topics.sh"]
+    networks: [platform]
+    logging: *json-logging
+
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:17-alpine}
+    hostname: postgres
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-15432}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-citibike}
+      POSTGRES_USER: ${POSTGRES_USER:-citibike}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-citibike_local_only}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+    networks: [platform]
+    logging: *json-logging
+
+  spark-master:
+    <<: *spark-common
+    hostname: spark-master
+    ports:
+      - "127.0.0.1:${SPARK_MASTER_PORT:-7077}:7077"
+      - "127.0.0.1:${SPARK_MASTER_UI_PORT:-8080}:8080"
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.master.Master
+      - --host
+      - spark-master
+      - --port
+      - "7077"
+      - --webui-port
+      - "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/ >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+
+  spark-worker:
+    <<: *spark-common
+    hostname: spark-worker
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${SPARK_WORKER_UI_PORT:-8081}:8081"
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.worker.Worker
+      - --cores
+      - ${SPARK_WORKER_CORES:-2}
+      - --memory
+      - ${SPARK_WORKER_MEMORY:-1g}
+      - --webui-port
+      - "8081"
+      - spark://spark-master:7077
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081/ >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+
+  toolbox:
+    <<: *spark-common
+    profiles: [tools]
+    restart: "no"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      spark-master:
+        condition: service_healthy
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - spark_ivy:/tmp/.ivy2
+    command: ["python3", "--version"]
+
+  gbfs-collector:
+    <<: *spark-common
+    profiles: [ingestion]
+    hostname: gbfs-collector
+    depends_on:
+      kafka:
+        condition: service_healthy
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      GBFS_DISCOVERY_URL: ${GBFS_DISCOVERY_URL:-https://gbfs.citibikenyc.com/gbfs/2.3/gbfs.json}
+      GBFS_LANGUAGE: ${GBFS_LANGUAGE:-en}
+      GBFS_MIN_POLL_SECONDS: ${GBFS_MIN_POLL_SECONDS:-60}
+      GBFS_STALE_AFTER_SECONDS: ${GBFS_STALE_AFTER_SECONDS:-180}
+      GBFS_METADATA_REFRESH_SECONDS: ${GBFS_METADATA_REFRESH_SECONDS:-3600}
+      GBFS_REQUEST_TIMEOUT_SECONDS: ${GBFS_REQUEST_TIMEOUT_SECONDS:-20}
+      GBFS_RETRY_ATTEMPTS: ${GBFS_RETRY_ATTEMPTS:-4}
+      GBFS_RETRY_BASE_SECONDS: ${GBFS_RETRY_BASE_SECONDS:-1}
+      GBFS_RETRY_MAX_SECONDS: ${GBFS_RETRY_MAX_SECONDS:-15}
+      COLLECTOR_ARCHIVE_ROOT: ${COLLECTOR_ARCHIVE_ROOT:-data/raw/gbfs}
+      COLLECTOR_STATE_FILE: ${COLLECTOR_STATE_FILE:-data/state/gbfs-collector.json}
+      COLLECTOR_METRICS_FILE: ${COLLECTOR_METRICS_FILE:-artifacts/step6/metrics.json}
+    command: ["python3", "-m", "producers.gbfs_collector"]
+
+  serving-db-init:
+    <<: *spark-common
+    profiles: [serving]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-citibike}:${POSTGRES_PASSWORD:-citibike_local_only}@postgres:5432/${POSTGRES_DB:-citibike}
+    command: ["python3", "-m", "serving.init_db"]
+
+  serving-api:
+    <<: *spark-common
+    profiles: [serving]
+    restart: unless-stopped
+    depends_on:
+      serving-db-init:
+        condition: service_completed_successfully
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-citibike}:${POSTGRES_PASSWORD:-citibike_local_only}@postgres:5432/${POSTGRES_DB:-citibike}
+      DATABASE_POOL_MIN_SIZE: ${DATABASE_POOL_MIN_SIZE:-2}
+      DATABASE_POOL_MAX_SIZE: ${DATABASE_POOL_MAX_SIZE:-16}
+      DATABASE_POOL_TIMEOUT_SECONDS: ${DATABASE_POOL_TIMEOUT_SECONDS:-5}
+    ports:
+      - "127.0.0.1:${SERVING_API_PORT:-18000}:8000"
+    command: ["python3", "-m", "uvicorn", "serving.api:app", "--host", "0.0.0.0", "--port", "8000"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health/ready >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+
+  serving-materializer:
+    <<: *spark-common
+    profiles: [serving]
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      serving-db-init:
+        condition: service_completed_successfully
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-citibike}:${POSTGRES_PASSWORD:-citibike_local_only}@postgres:5432/${POSTGRES_DB:-citibike}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    command: ["python3", "-m", "serving.materializer", "--source", "kafka"]
+
+  prometheus:
+    image: ${PROMETHEUS_IMAGE:-prom/prometheus:v3.5.0}
+    profiles: [monitoring]
+    restart: unless-stopped
+    depends_on:
+      serving-api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-19090}:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --web.enable-lifecycle
+    networks: [platform]
+    logging: *json-logging
+
+networks:
+  platform:
+    name: ${COMPOSE_PROJECT_NAME:-citibike-platform}-network
+
+volumes:
+  kafka_data:
+  postgres_data:
+  spark_ivy:
+  prometheus_data:

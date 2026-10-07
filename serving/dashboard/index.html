@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Citi Bike station operations priority queue">
+  <title>Station Operations · Citi Bike</title>
+  <link rel="stylesheet" href="/dashboard/static/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to operations queue</a>
+  <header class="topbar">
+    <div class="brand-block">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <div>
+        <p class="eyebrow">Citi Bike · Operations control</p>
+        <h1>Station response desk</h1>
+      </div>
+    </div>
+    <div class="system-state" id="system-state" role="status" aria-live="polite">
+      <span class="status-dot"></span>
+      <span>Connecting</span>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="hero" aria-labelledby="hero-title">
+      <div>
+        <p class="eyebrow">Live decision support</p>
+        <h2 id="hero-title">Act on the stations that need attention now.</h2>
+        <p class="hero-copy">Prioritized from persistent availability risk, historical demand and recent inventory movement.</p>
+      </div>
+      <div class="refresh-block">
+        <button class="button button-secondary" id="refresh-button" type="button">
+          <span aria-hidden="true">↻</span> Refresh data
+        </button>
+        <p id="last-updated">Not updated yet</p>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="Operations summary">
+      <article class="metric-card metric-primary">
+        <p>Active tasks</p><strong id="metric-active">—</strong><span>requiring action</span>
+      </article>
+      <article class="metric-card">
+        <p>Critical</p><strong id="metric-critical">—</strong><span>highest severity</span>
+      </article>
+      <article class="metric-card">
+        <p>Acknowledged</p><strong id="metric-acknowledged">—</strong><span>owned by an operator</span>
+      </article>
+      <article class="metric-card">
+        <p>Stations online</p><strong id="metric-stations">—</strong><span>current snapshots</span>
+      </article>
+    </section>
+
+    <section class="workspace">
+      <div class="workspace-head">
+        <div class="tabs" role="tablist" aria-label="Dashboard views">
+          <button class="tab active" role="tab" aria-selected="true" aria-controls="queue-panel" id="queue-tab">Priority queue</button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="stations-panel" id="stations-tab">Station state</button>
+        </div>
+        <label class="search-box">
+          <span aria-hidden="true">⌕</span>
+          <span class="sr-only">Search stations</span>
+          <input id="search-input" type="search" placeholder="Search station or action">
+        </label>
+      </div>
+
+      <section id="queue-panel" role="tabpanel" aria-labelledby="queue-tab">
+        <div class="filter-row" aria-label="Filter priority queue">
+          <button class="filter-chip active" type="button" data-action="ALL">All actions</button>
+          <button class="filter-chip" type="button" data-action="DELIVER_BIKES">Deliver bikes</button>
+          <button class="filter-chip" type="button" data-action="REMOVE_BIKES">Remove bikes</button>
+          <button class="filter-chip" type="button" data-action="INSPECT_STATION">Inspect</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Priority</th><th>Station</th><th>Risk</th><th>Recommended action</th><th>Duration</th><th>Status</th><th><span class="sr-only">Open</span></th></tr></thead>
+            <tbody id="alert-rows"></tbody>
+          </table>
+          <div class="empty-state hidden" id="alerts-empty"><strong>No matching active tasks</strong><span>Try another filter or refresh the data.</span></div>
+        </div>
+      </section>
+
+      <section id="stations-panel" role="tabpanel" aria-labelledby="stations-tab" class="hidden">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Station</th><th>Inventory</th><th>Bikes</th><th>Docks</th><th>Service</th><th>Source age</th></tr></thead>
+            <tbody id="station-rows"></tbody>
+          </table>
+          <div class="empty-state hidden" id="stations-empty"><strong>No station snapshots</strong><span>The serving materializer has not published current state yet.</span></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="alert-dialog" aria-labelledby="dialog-title">
+    <div class="dialog-shell">
+      <header class="dialog-head">
+        <div><p class="eyebrow">Operational task</p><h2 id="dialog-title">Alert details</h2></div>
+        <button class="icon-button" id="dialog-close" type="button" aria-label="Close alert details">×</button>
+      </header>
+      <div id="dialog-content" class="dialog-content"></div>
+    </div>
+  </dialog>
+
+  <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+  <script src="/dashboard/static/app.js" defer></script>
+</body>
+</html>

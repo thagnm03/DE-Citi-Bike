@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+rule_files:
+  - /etc/prometheus/alert-rules.yml
+
+scrape_configs:
+  - job_name: serving-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["serving-api:8000"]

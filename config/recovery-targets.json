@@ -1,0 +1,10 @@
+{
+  "api_restart_rto_seconds": 30.0,
+  "database_restart_rto_seconds": 60.0,
+  "backlog_catchup_seconds": 30.0,
+  "minimum_soak_success_rate_percent": 99.0,
+  "maximum_soak_p95_latency_ms": 500.0,
+  "soak_requests": 600,
+  "soak_concurrency": 12,
+  "recovery_point_objective_lost_business_records": 0
+}

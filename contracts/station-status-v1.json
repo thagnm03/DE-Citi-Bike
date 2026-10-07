@@ -1,0 +1,239 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://local.ie212/contracts/station-status-v1.json",
+  "title": "Citi Bike normalized station status observation v1",
+  "description": "One station observation derived from one archived GBFS station_status snapshot and enriched with station_information metadata. Supports the audited 1.1 samples and current 2.3 live feed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "event_type",
+    "source_system",
+    "station",
+    "availability",
+    "service",
+    "time",
+    "source",
+    "quality"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 of the canonical identity fields documented in docs/data-contracts.md."
+    },
+    "event_type": {
+      "const": "STATION_STATUS_OBSERVED"
+    },
+    "source_system": {
+      "const": "citibike_nyc"
+    },
+    "station": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "station_id",
+        "short_name",
+        "name",
+        "latitude",
+        "longitude",
+        "capacity",
+        "metadata_match_status"
+      ],
+      "properties": {
+        "station_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "short_name": {
+          "type": ["string", "null"],
+          "maxLength": 64
+        },
+        "name": {
+          "type": ["string", "null"],
+          "maxLength": 256
+        },
+        "latitude": {
+          "type": ["number", "null"],
+          "minimum": -90,
+          "maximum": 90
+        },
+        "longitude": {
+          "type": ["number", "null"],
+          "minimum": -180,
+          "maximum": 180
+        },
+        "capacity": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "metadata_match_status": {
+          "enum": ["MATCHED_BY_STATION_ID", "UNMATCHED"]
+        }
+      }
+    },
+    "availability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bikes_available",
+        "bikes_disabled",
+        "docks_available",
+        "docks_disabled",
+        "ebikes_available"
+      ],
+      "properties": {
+        "bikes_available": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bikes_disabled": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "docks_available": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "docks_disabled": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ebikes_available": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "GBFS 1.1 source extension; null when absent."
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["is_installed", "is_renting", "is_returning"],
+      "properties": {
+        "is_installed": {
+          "type": "boolean"
+        },
+        "is_renting": {
+          "type": "boolean"
+        },
+        "is_returning": {
+          "type": "boolean"
+        }
+      }
+    },
+    "time": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_updated_at_utc",
+        "station_reported_at_raw",
+        "station_reported_at_utc",
+        "observed_at_utc",
+        "normalized_at_utc",
+        "source_age_seconds"
+      ],
+      "properties": {
+        "snapshot_updated_at_utc": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Primary event time, derived from the GBFS response-level last_updated."
+        },
+        "station_reported_at_raw": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Unmodified station-level last_reported epoch value."
+        },
+        "station_reported_at_utc": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "Normalized station-level timestamp, null when raw value is missing or invalid/sentinel."
+        },
+        "observed_at_utc": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Collector receive time (ingestion time)."
+        },
+        "normalized_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_age_seconds": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "observed_at minus a valid station_reported_at; null otherwise."
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "feed_name",
+        "feed_version",
+        "feed_ttl_seconds",
+        "snapshot_sha256",
+        "raw_archive_path"
+      ],
+      "properties": {
+        "feed_name": {
+          "const": "station_status"
+        },
+        "feed_version": {
+          "enum": ["1.1", "2.3"],
+          "description": "GBFS version declared by the source snapshot. The canonical event schema remains v1."
+        },
+        "feed_ttl_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "raw_archive_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timestamp_status",
+        "capacity_consistency",
+        "issue_codes"
+      ],
+      "properties": {
+        "timestamp_status": {
+          "enum": ["VALID", "SENTINEL", "MISSING", "FUTURE", "OUT_OF_RANGE"]
+        },
+        "capacity_consistency": {
+          "enum": ["EXACT", "MISMATCH", "NOT_EVALUATED"]
+        },
+        "issue_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "SOURCE_TIMESTAMP_SENTINEL",
+              "SOURCE_TIMESTAMP_MISSING",
+              "SOURCE_TIMESTAMP_FUTURE",
+              "SOURCE_TIMESTAMP_OUT_OF_RANGE",
+              "SOURCE_STALE",
+              "METADATA_UNMATCHED",
+              "CAPACITY_MISMATCH"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

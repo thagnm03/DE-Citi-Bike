@@ -1,0 +1,6 @@
+confluent-kafka==2.15.1
+jsonschema==4.26.0
+pandas==2.3.3
+pyarrow==20.0.0
+protobuf==6.33.6
+

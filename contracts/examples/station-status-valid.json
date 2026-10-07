@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "event_id": "72c9892f0935ecec7221911a3ab56e1507595916565c0337bccde85c7a13217c",
+  "event_type": "STATION_STATUS_OBSERVED",
+  "source_system": "citibike_nyc",
+  "station": {
+    "station_id": "66de73fd-0aca-11e7-82f6-3863bb44ef7c",
+    "short_name": "5433.03",
+    "name": "Richardson St & N Henry St",
+    "latitude": 40.71907891179564,
+    "longitude": -73.94223690032959,
+    "capacity": 25,
+    "metadata_match_status": "MATCHED_BY_STATION_ID"
+  },
+  "availability": {
+    "bikes_available": 12,
+    "bikes_disabled": 1,
+    "docks_available": 12,
+    "docks_disabled": 0,
+    "ebikes_available": 3
+  },
+  "service": {
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true
+  },
+  "time": {
+    "snapshot_updated_at_utc": "2026-09-21T01:33:19Z",
+    "station_reported_at_raw": 1789954257,
+    "station_reported_at_utc": "2026-09-21T01:30:57Z",
+    "observed_at_utc": "2026-09-21T01:34:00Z",
+    "normalized_at_utc": "2026-09-21T01:34:00Z",
+    "source_age_seconds": 183
+  },
+  "source": {
+    "feed_name": "station_status",
+    "feed_version": "1.1",
+    "feed_ttl_seconds": 60,
+    "snapshot_sha256": "7bd49fd9fe47612e365e80ed8b7ad251ff425f06af74eba0baad893d2d9881b6",
+    "raw_archive_path": "raw/gbfs/station_status/date=2026-09-21/1789954399-7bd49fd9.json"
+  },
+  "quality": {
+    "timestamp_status": "VALID",
+    "capacity_consistency": "EXACT",
+    "issue_codes": []
+  }
+}

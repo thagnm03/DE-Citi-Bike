@@ -1,0 +1,141 @@
+name: citibike-step4
+
+services:
+  kafka:
+    image: apache/kafka:4.3.1
+    hostname: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      CLUSTER_ID: 4L6g3nShT-eMCtK--X86sw
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:29092,CONTROLLER://:29093,PLAINTEXT_HOST://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 --list >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+
+  kafka-init:
+    image: apache/kafka:4.3.1
+    depends_on:
+      kafka:
+        condition: service_healthy
+    volumes:
+      - .:/workspace
+    entrypoint: ["/bin/bash", "/workspace/scripts/init_kafka_topics.sh"]
+
+  producer:
+    build:
+      context: .
+      dockerfile: Dockerfile.step4
+    image: citibike-step4-app:local
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    command:
+      - python3
+      - -m
+      - prototype.kafka_producer
+      - --bootstrap-servers
+      - kafka:29092
+      - --invalid-input
+      - /workspace/artifacts/step4/local-demo/invalid-observations.ndjson
+      - --additional-input
+      - /workspace/artifacts/step4/local-demo/partition-probes.ndjson
+
+  spark-main:
+    image: citibike-step4-app:local
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - spark_main_checkpoint:/checkpoints/main
+      - spark_ivy:/tmp/.ivy2
+    command:
+      - python3
+      - -m
+      - prototype.spark_streaming
+      - --source
+      - kafka
+      - --sink
+      - kafka
+      - --bootstrap-servers
+      - kafka:29092
+      - --checkpoint-dir
+      - /checkpoints/main
+      - --starting-offsets
+      - earliest
+      - --available-now
+      - --app-name
+      - citibike-step4-main
+      - --progress-file
+      - /workspace/artifacts/step4/docker-latest/main-progress.ndjson
+
+  spark-replay:
+    image: citibike-step4-app:local
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - spark_replay_checkpoint:/checkpoints/replay
+      - spark_ivy:/tmp/.ivy2
+    command:
+      - python3
+      - -m
+      - prototype.spark_streaming
+      - --source
+      - kafka
+      - --sink
+      - kafka
+      - --bootstrap-servers
+      - kafka:29092
+      - --checkpoint-dir
+      - /checkpoints/replay
+      - --starting-offsets
+      - earliest
+      - --output-topic
+      - citibike.station-alerts.replay.v1
+      - --available-now
+      - --app-name
+      - citibike-step4-recovery-replay
+      - --progress-file
+      - /workspace/artifacts/step4/docker-latest/replay-progress.ndjson
+
+  toolbox:
+    image: citibike-step4-app:local
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    command: ["python3", "--version"]
+
+volumes:
+  kafka_data:
+  spark_main_checkpoint:
+  spark_replay_checkpoint:
+  spark_ivy:

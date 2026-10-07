@@ -1,0 +1,6 @@
+{
+  "source_timezone": "America/New_York",
+  "long_duration_seconds": 86400,
+  "silver_output_partitions": 8,
+  "gold_output_partitions": 4
+}

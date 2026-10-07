@@ -1,0 +1,7 @@
+jsonschema==4.26.0
+pytest==8.4.2
+pyspark==4.2.0
+confluent-kafka==2.15.1
+pandas==2.3.3
+pyarrow==20.0.0
+protobuf==6.33.6

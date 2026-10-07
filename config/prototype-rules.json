@@ -1,0 +1,9 @@
+{
+  "persistence_seconds": 300,
+  "stale_after_seconds": 180,
+  "low_bikes_threshold": 2,
+  "low_docks_threshold": 2,
+  "dedup_ttl_seconds": 86400,
+  "watermark_delay": "10 minutes",
+  "rule_version": "prototype-rules-1.0"
+}

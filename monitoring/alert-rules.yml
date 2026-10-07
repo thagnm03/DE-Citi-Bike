@@ -1,0 +1,65 @@
+groups:
+  - name: citibike-serving-slo
+    rules:
+      - record: citibike:api_request_rate5m
+        expr: sum(rate(citibike_api_http_requests_total{route=~"/api/.*"}[5m]))
+
+      - record: citibike:api_error_ratio5m
+        expr: sum(rate(citibike_api_http_requests_total{route=~"/api/.*",status_code=~"5.."}[5m])) / clamp_min(sum(rate(citibike_api_http_requests_total{route=~"/api/.*"}[5m])), 0.001)
+
+      - record: citibike:api_latency_p95_seconds5m
+        expr: histogram_quantile(0.95, sum by (le) (rate(citibike_api_http_request_duration_seconds_bucket{route=~"/api/.*"}[5m])))
+
+      - alert: ServingAPIDown
+        expr: up{job="serving-api"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: Serving API cannot be scraped
+          action: Check the serving-api container and its database dependency.
+
+      - alert: ServingDatabaseUnavailable
+        expr: citibike_serving_database_up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: Serving database query is failing
+          action: Check PostgreSQL health and DATABASE_URL connectivity.
+
+      - alert: ServingAPIErrorBudgetBurn
+        expr: citibike:api_error_ratio5m > 0.01
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: More than one percent of API requests are returning 5xx
+          action: Inspect structured API logs and recent dependency failures.
+
+      - alert: ServingAPILatencyHigh
+        expr: citibike:api_latency_p95_seconds5m > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: API p95 latency is above 500 milliseconds
+          action: Inspect query latency and database resource saturation.
+
+      - alert: StationProjectionMissing
+        expr: citibike_station_projection_rows == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: No station state is available to operators
+          action: Check ingestion, streaming output and serving materialization.
+
+      - alert: StationDataStale
+        expr: citibike_station_source_age_seconds > 180
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Effective station source age is above three minutes
+          action: Check GBFS polling, Kafka flow, Spark progress and materialization.

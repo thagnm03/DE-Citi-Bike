@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "alert_event_id": "d22a730cc5a7a4508edd334f6f28e69898a6b4a1c49b41e59420a1483f8c87fd",
+  "alert_id": "385b27fe2339c5f5f54ec7a698c30a7c947746d840af44f3a909f8194f620972",
+  "event_type": "ALERT_RESOLVED",
+  "lifecycle_status": "RESOLVED",
+  "alert_type": "EMPTY",
+  "recommended_action": "NONE",
+  "severity": "INFO",
+  "station": {
+    "station_id": "demo-station-001",
+    "short_name": "DEMO.01",
+    "name": "Prototype empty station"
+  },
+  "time": {
+    "episode_started_at_utc": "2026-09-21T02:00:00Z",
+    "detected_at_utc": "2026-09-21T02:05:00Z",
+    "status_changed_at_utc": "2026-09-21T02:12:00Z",
+    "last_observed_at_utc": "2026-09-21T02:12:00Z",
+    "resolved_at_utc": "2026-09-21T02:12:00Z"
+  },
+  "evidence": {
+    "risk_duration_seconds": 720,
+    "bikes_available": 5,
+    "docks_available": 5,
+    "is_renting": true,
+    "is_returning": true,
+    "source_age_seconds": 10,
+    "reason_codes": [
+      "RISK_CLEARED"
+    ]
+  },
+  "priority": {
+    "score": 0,
+    "rule_version": "prototype-rules-1.0",
+    "components": {
+      "severity": 0,
+      "persistence": 0,
+      "historical_demand": 0,
+      "recent_trend": 0,
+      "service_impact": 0
+    }
+  },
+  "lineage": {
+    "triggering_event_id": "5b848b52e71c2caa8c5b18b5630d3f694a41ce4bb237d21dc8eff8dd916ac1ea",
+    "input_topic": "citibike.station-status.v1",
+    "input_partition": 1,
+    "input_offset": 49,
+    "generated_at_utc": "2026-09-21T02:12:02Z"
+  }
+}
